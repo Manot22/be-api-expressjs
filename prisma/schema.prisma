@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+model User {
+  id        Int   @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  phone     String
+  password  String
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  rentals   Rental[]
+
+  @@map("users")
+}
+
+model Car {
+  id           Int        @id @default(autoincrement())
+  name         String
+  brand        String
+  image        String
+  model        String
+  plateNumber  String        @unique
+  dailyRate    Decimal      @db.Decimal(10, 2)
+  status       CarStatus    @default(AVAILABLE)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  rentals      Rental[]
+  maintenance  Maintenance[]
+
+  @@map("cars")
+}
+
+model Rental {
+  id          Int    @id @default(autoincrement())
+  userId      Int
+  carId       Int
+  pickupDate  DateTime
+  returnDate  DateTime
+  totalCost   Decimal   @db.Decimal(10, 2)
+  status      RentalStatus @default(PENDING)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id])
+  car         Car       @relation(fields: [carId], references: [id])
+  payment     Payment?
+
+  @@map("rentals")
+}
+
+model Payment {
+  id            Int        @id @default(autoincrement())
+  rentalId      Int        @unique
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentMethod PaymentMethod
+  paymentDate   DateTime
+  paymentStatus PaymentStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  rental        Rental        @relation(fields: [rentalId], references: [id])
+
+  @@map("payments")
+}
+
+model Maintenance {
+  id          Int    @id @default(autoincrement())
+  carId       Int
+  serviceDate DateTime
+  description String
+  cost        Decimal   @db.Decimal(10, 2)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  car         Car       @relation(fields: [carId], references: [id])
+
+  @@map("maintenance")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum CarStatus {
+  AVAILABLE
+  RENTED
+  MAINTENANCE
+}
+
+enum RentalStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  BANK_TRANSFER
+  E_WALLET
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
